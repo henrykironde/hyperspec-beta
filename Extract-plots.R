@@ -5,11 +5,11 @@
 # Import the shape files for SJER and SOAP sites
 
 set.seed(7382462)
-setwd("~/Desktop/Projects/NEON-2016/hyperspec-beta")
 
 library("shapefiles")
 library("raster")
 library("rgdal")
+library("dplyr")
 
 SessInfo <- sessionInfo()
 # save(file = "Extract_plots.RData", list = ls())
@@ -21,6 +21,8 @@ str(SJER_shape)
 # extract the plot data for SJER
 SJER_plots <- SJER_shape$dbf$dbf[, c(1, 3, 4)]
 SJER_plots # note that these are not lat / long coordinates
+
+SJER$northing <- SJER$
 
 SJER_plots$south <- SJER_plots$northing - 20
 SJER_plots$west <- SJER_plots$easting - 20
