@@ -2,7 +2,7 @@
 ##### Data and code to count discontinuities from Hyper-Spectral Imagery
 #####
 
-set.seed(7382462)
+set.seed(786121246)
 
 library("raster")
 library("rgdal")
@@ -12,12 +12,10 @@ library("rgl")
 library("mclust")
 
 
-# import the HSI data
+# import the HSI data, which has the plots isolated
 SJER_plots <- readRDS("output/plot_cubes.rds")
 head(SJER_plots)
 
-
-# isloate plot(s)
 
 # kmeans by all plots together
 
@@ -27,14 +25,22 @@ str(SJER_table)
 SJER_matrix <- do.call(rbind, SJER_table)
 dim(SJER_matrix)
 head(SJER_matrix)
+plot(SJER_matrix[1, ], type = "l", lwd = 2, lty = 2)
+
+# subsmaple 1000 rows from the full matrix
+SJER_slimmed <- sample(nrow(SJER_matrix), size = 1000, replace = FALSE)
+SJER_slimmed <- SJER_matrix[SJER_slimmed, ]
+str(SJER_slimmed)
+head(SJER_slimmed)
 
 
-K_hsi <- kmeans(SJER_matrix, centers = 3, iter.max = 10)
+# compute K means
+K_hsi <- kmeans(SJER_slimmed, centers = 10, iter.max = 10)
 str(K_hsi)
 hist(K_hsi$cluster)
 
 # alternatively PCA
-SJER_PCA1 <- prcomp(SJER_matrix, center = TRUE) 
+SJER_PCA1 <- prcomp(SJER_slimmed, center = TRUE) 
 str(SJER_PCA1)
 plot(SJER_PCA1, ylim = c(0, 1))
 summary(SJER_PCA1)$importance
@@ -57,9 +63,13 @@ pca_km <- kmeans(pc1, centers = 3)
 # using mclust to generate K estimates
 # SJER_mc1 <- Mclust(SJER_matrix, G = 1:3, warn = TRUE)
 
-library("foreach")
-library("iterators")
-mat_test <- iter(SJER_matrix, by = "column")
-system.time(mclust_test <- foreach(r = mat_test) %do% Mclust(r))
+SJ_bc1 <- mclustBIC(SJER_slimmed, G = 1:25, modelNames = c("EII", "VII", "EEI", "VEI", "EEE"))
+summary(SJ_bc1)
+plot(SJ_bc1)
+
+
+plot(mclust_test)
+
+summary(mclust_test)
 
 #xyFromCell in raster - to retain 
