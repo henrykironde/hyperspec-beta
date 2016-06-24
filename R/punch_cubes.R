@@ -84,13 +84,7 @@ complete_overlap <- function(extent1, extent2) {
 }
 
 
-find_best_flight <- function(plot_coords, midlines, overlap_flights) {
-  # Args: 
-  #  - plot_coords: a tuple of coordinates
-  #  - midlines: a list of flight midlines and orientations
-  #  - overlap_flights: a numeric vector of flight indexes that overlap the plot
-  # Returns: 
-  #  - an integer index for the flight with the minimum midline distance
+compute_distances <- function(plot_coords, midlines, overlap_flights) {
   distance_vec <- rep(NA, length(midlines))
   for (f in overlap_flights) {
     # compute distance from midline
@@ -106,8 +100,41 @@ find_best_flight <- function(plot_coords, midlines, overlap_flights) {
   }
   # compute the minimum distance in the vector
   stopifnot(any(!is.na(distance_vec)))
-  best_flight <- min(distance_vec, na.rm = TRUE)
-  which(distance_vec == best_flight)
+  distance_vec
+}
+
+# Args: 
+#  - plot_coords: a tuple of coordinates
+#  - midlines: a list of flight midlines and orientations
+#  - overlap_flights: a numeric vector of flight indexes that overlap the plot
+# Returns: 
+#  - an integer index for the flight with the minimum midline distance
+find_best_flight <- function(plot_coords, midlines, overlap_flights, 
+                             plot_extent, h5_files, flight_extents) {
+  distance_vec <- compute_distances(plot_coords, midlines, overlap_flights)
+  best_flight_found <- FALSE
+  while (!best_flight_found) {
+    if (all(is.na(distance_vec))) {
+      stop('No flights have complete data for plot.')
+    }
+    flight_to_check <- which(distance_vec == min(distance_vec, na.rm = TRUE))
+    indices <- calculate_index_extent(clipExtent = plot_extent, 
+                                      h5Extent = flight_extents[[flight_to_check]])
+    cube_to_check <- create_stack(file = h5_files[flight_to_check], 
+                                    bands = round(seq(1, 426, 50)), 
+                                    epsg = 32611, 
+                                    subset = TRUE, 
+                                    dims = indices)
+    na_flag <- is.na(values(cube_to_check))
+    if (any(na_flag)) {
+      distance_vec[flight_to_check] <- NA
+      next
+    } else {
+      best_flight_found <- TRUE
+      best_flight <- flight_to_check
+    }
+  }
+  best_flight
 }
 
 completely_overlapping <- vector(mode = 'list', length = length(plot_extents))
@@ -123,25 +150,24 @@ for (i in seq_along(plot_extents)) {
     unlist()
   completely_overlapping[[i]] <- which(complete_overlap_vec)
   
-  # select the flight whose flight line is closest to the plot centroid
+  # select the flight whose flight line is closest to the plot centroid & 
+  # which has complete data coverage
   coords <- plot_extent_data[i, c('CENT_northing', 'CENT_easting')]
   best_flight[i] <- find_best_flight(plot_coords = coords, 
                                      midlines = midlines, 
-                                     overlap_flights = completely_overlapping[[i]])
+                                     overlap_flights = completely_overlapping[[i]], 
+                                     plot_extent = plot_extents[[i]], 
+                                     h5_files = h5_files, 
+                                     flight_extents = flight_extents)
   best_flight_extent <- flight_extents[[best_flight[i]]]
   indices <- calculate_index_extent(clipExtent = plot_extents[[i]], 
                                     h5Extent = best_flight_extent)
   plot_cubes[[i]] <- create_stack(h5_files[best_flight[i]], 
-                                  bands = 200:210, 
+                                  bands = 1:426, 
                                   epsg = 32611, 
                                   subset = TRUE, 
                                   dims = indices)
 }
 
-# use neonAOP::calculate_index_extent to find the indices corresponding to HS
-# data cubes for each plot
-## result: index extents for each of the 18 plots
-
-# for each plot create raster stack objects that contain all wavelengths
-# (should be about 680,000 pixels in total, 40 X 40 X 426)
-
+names(plot_cubes) <- plot_extent_data$Plot_ID
+saveRDS(plot_cubes, file = 'output/plot_cubes.rds')
