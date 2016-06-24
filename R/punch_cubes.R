@@ -7,28 +7,21 @@ library(rgeos)
 library(magrittr)
 
 ## Finding HDF5 files for the hyperspectral data -------------------------------
-site <- "SJER"
-domain <- "D17"
-fullDomain <- "D17-California"
-level <- "L1"
-dataType <- "Spectrometer"
-level <- paste0(site, "_L1")
-year <- "2013"
-productType <- paste0(site,"_", dataType)
-dataProduct <- "Reflectance"
-productType <- paste0(site,"_Spectrometer")
-level <- paste0(site,"_L1")
+get_data_dir <- function(site = "SJER", domain = "D17", level = "L1", 
+                         dataType = "Spectrometer", year = "2013", 
+                         dataProduct = "Reflectance", 
+                         driveName = "AOP-NEON1-4", 
+                         drivePath = "/media/max") {
+  level <- paste(site, level, sep = "_")
+  productType <- paste0(site,"_", dataType)
+  dataDir <- file.path(drivePath, driveName,
+                       domain,
+                       site, year, level, productType, dataProduct)
+  dataDir
+}
 
-# Note: the next line must be changed and is brittle as heck
-# e.g., if your username is bob and you're on a mac it should be 
-# drivePath <- '/Volumes'
-drivePath <- "media/max"
-driveName <- "AOP-NEON1-4"
 
-dataDir <- file.path(drivePath, driveName,
-                     domain,
-                     site, year, level, productType, dataProduct)
-dataDir <- paste0("/", dataDir)
+dataDir <- get_data_dir()
 h5_files <- list.files(dataDir, pattern = '\\.h5$', full.names = TRUE)
 
 
