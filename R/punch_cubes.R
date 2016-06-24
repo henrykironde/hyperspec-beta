@@ -4,6 +4,7 @@ library(rhdf5)
 library(rgdal)
 library(neonAOP)
 library(rgeos)
+library(magrittr)
 
 ## Finding HDF5 files for the hyperspectral data -------------------------------
 site <- "SJER"
@@ -62,18 +63,80 @@ for (i in seq_along(plot_extents)) {
 }
 
 # compute flight midlines
+get_midline <- function(extent) {
+  xrange <- extent@xmax - extent@xmin
+  yrange <- extent@ymax - extent@ymin
+  orientation <- ifelse(xrange > yrange, 'East_West', 'North_South')
+  UTM <- ifelse(orientation == 'East_West', 
+                mean(extent@ymax, extent@ymin), 
+                mean(extent@xmax, extent@xmin))
+  c(orientation = orientation, UTM = UTM)
+}
+
+midlines <- lapply(flight_extents, get_midline)
+
+complete_overlap <- function(extent1, extent2) {
+  # checks whether extent 1 completely overlaps (encapsulates) extent2
+  x_encapsulation <- extent1@xmin <= extent2@xmin & extent1@xmax >= extent2@xmax
+  y_encapsulation <- extent1@ymin <= extent2@ymin & extent1@ymax >= extent2@ymax
+  total_overlap <- x_encapsulation & y_encapsulation
+  total_overlap
+}
+
+
+find_best_flight <- function(plot_coords, midlines, overlap_flights) {
+  # Args: 
+  #  - plot_coords: a tuple of coordinates
+  #  - midlines: a list of flight midlines and orientations
+  #  - overlap_flights: a numeric vector of flight indexes that overlap the plot
+  # Returns: 
+  #  - an integer index for the flight with the minimum midline distance
+  distance_vec <- rep(NA, length(midlines))
+  for (f in overlap_flights) {
+    # compute distance from midline
+    if (midlines[[f]][1] == "North_South") {
+      dx <- abs(plot_coords$CENT_easting - as.numeric(midlines[[f]][2]))
+      distance_vec[f] <- dx
+    } else if (midlines[[f]][1] == "East_West") {
+      dy <- abs(plot_coords$CENT_northing - as.numeric(midlines[[f]][2]))
+      distance_vec[f] <- dy
+    } else {
+      stop('Flight orientation is neither NS or EW')
+    }
+  }
+  # compute the minimum distance in the vector
+  stopifnot(any(!is.na(distance_vec)))
+  best_flight <- min(distance_vec, na.rm = TRUE)
+  which(distance_vec == best_flight)
+}
+
+completely_overlapping <- vector(mode = 'list', length = length(plot_extents))
+best_flight <- rep(NA, nrow(plot_extent_data))
+plot_cubes <- vector(mode = 'list', length = length(plot_extents))
 
 # loop over plots and:
-# 1. identify which flights overlap the plot
-# 2. find out whether there is one or more flights that cover the entire plot
-# if 2 == TRUE:
-## if more than one flight completely overlaps:
-### select the flight whose flight line is closest to the plot centroid
-## else:
-### choose the one flight that completely overlaps
-# else:
-## select the set of flights that could give complete coverage for the plot
-## (based on visual inspection I don't think we'll encounter this case)
+for (i in seq_along(plot_extents)) {
+  # 1. identify which flights overlap the plot
+  complete_overlap_vec <- lapply(flight_extents, 
+                                 complete_overlap, 
+                                 extent2 = plot_extents[[i]]) %>%
+    unlist()
+  completely_overlapping[[i]] <- which(complete_overlap_vec)
+  
+  # select the flight whose flight line is closest to the plot centroid
+  coords <- plot_extent_data[i, c('CENT_northing', 'CENT_easting')]
+  best_flight[i] <- find_best_flight(plot_coords = coords, 
+                                     midlines = midlines, 
+                                     overlap_flights = completely_overlapping[[i]])
+  best_flight_extent <- flight_extents[[best_flight[i]]]
+  indices <- calculate_index_extent(clipExtent = plot_extents[[i]], 
+                                    h5Extent = best_flight_extent)
+  plot_cubes[[i]] <- create_stack(h5_files[best_flight[i]], 
+                                  bands = 200:210, 
+                                  epsg = 32611, 
+                                  subset = TRUE, 
+                                  dims = indices)
+}
 
 # use neonAOP::calculate_index_extent to find the indices corresponding to HS
 # data cubes for each plot
