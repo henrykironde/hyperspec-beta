@@ -22,10 +22,14 @@ str(SJER_shape)
 SJER_plots <- SJER_shape$dbf$dbf[, c(1, 3, 4)]
 SJER_plots # note that these are not lat / long coordinates
 
-SJER$northing <- SJER$
+SJER_plots$CENT_northing <- SJER_plots$northing
+SJER_plots$CENT_easting <- SJER_plots$easting
+SJER_plots <- SJER_plots[, c(1, 4:5)]
 
-SJER_plots$south <- SJER_plots$northing - 20
-SJER_plots$west <- SJER_plots$easting - 20
+SJER_plots$south <- SJER_plots$CENT_northing - 20
+SJER_plots$west <- SJER_plots$CENT_easting - 20
+SJER_plots$north <- SJER_plots$CENT_northing + 20
+SJER_plots$east <- SJER_plots$CENT_easting + 20
 SJER_plots
 
 write.csv(SJER_plots, file = "SJER_plot_extents.csv")
