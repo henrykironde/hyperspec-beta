@@ -1,0 +1,73 @@
+---
+title: "Comparision between insitu diversity and spectral data"
+author: "Max Joseph, Chris Hamm, Henry Senyondo"
+date: "June 25, 2016"
+output: html_document
+---
+
+Comparision of species diversity between insitu and NEON spectral data
+========================================================
+```{r load-helpers, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(raster)
+library(rhdf5)
+library(rgdal)
+library(neonAOP)
+library(rgeos)
+library(magrittr)
+
+```
+
+
+## Question
+
+Are the esitmates of insitu correlation with remote sensing data?
+
+## Introduction
+
+## Approach
+
+1.
+
+2.
+
+3.
+
+
+# Data Used and Preprocessing
+
+```{r extracting plot data }
+
+```
+
+
+
+
+## Finding HDF5 files for the hyperspectral data 
+```{r}
+
+```
+
+## get extents for each flight hyperspectral raster and each plot
+```{r}
+
+```
+
+# get extents for each plot and draw on plot
+
+```{r}
+
+
+```
+
+## evaluating sampled data
+
+## Results
+
+## conlcusion
+
+
+## Questions
+
+
+
