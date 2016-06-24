@@ -20,10 +20,8 @@ rm('script','raw.fun')
 cubes <- readRDS('output/plot_cubes.rds')
 
 # Load in situ plant data
-drive_location <- "/media/max"
-insitu_relpath <- "AOP-NEON1-4/D17/Field_Data/2013/Sampling_Data/D17_Vegetation_Structure/D17_2013_vegStr.csv"
-insitu_file <- file.path(drive_location, insitu_relpath)
-plants <- read.csv(insitu_file, stringsAsFactors = FALSE) %>%
+insitu_path <- "data/D17_2013_vegStr.csv"
+plants <- read.csv(insitu_path, stringsAsFactors = FALSE) %>%
   filter(siteid == 'SJER')
 
 plot(x = plants$easting, 
