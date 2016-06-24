@@ -1,10 +1,3 @@
----
-title: "Wed-project"
-author: "C. A. Hamm"
-date: "June 22, 2016"
-output: html_document
----
-
 ## Analysis of vegetation diversity for the NEON D17 region
 ### Ultimately want to compare diversity estimates (alpha, beta, and gamma) between ground and remote data
 
@@ -16,7 +9,6 @@ library("rgdal")
 library("vegan")
 library("vegetarian")
 library("dplyr")
-library("reshape")
 options(stringAsFactors = FALSE)
 
 sessID <- sessionInfo()
@@ -28,7 +20,7 @@ sessID <- sessionInfo()
 ### Now to import the ground truthed data from D17
 
 
-D17_veg <- read.csv("Data/`D17_2013_vegStr.csv", header = TRUE)
+D17_veg <- read.csv("data/D17_2013_vegStr.csv", header = TRUE)
 dim(D17_veg)
 str(D17_veg)
 head(D17_veg)
@@ -43,6 +35,8 @@ head(CA_data)
 # This will sum the number of each species idnetified in each plot 
 CA_sites <- table(CA_data$plotid, CA_data$taxonid)
 dim(CA_sites)
+dim(CA_sites[, colSums(CA_sites^2) == 0]) # No columns are completely empty
+
 
 # Parse into SJER site
 SJER_site <- CA_sites[1:18, ]
@@ -50,12 +44,17 @@ dim(SJER_site)
 head(SJER_site)
 tail(SJER_site)
 
+dim(SJER_site[, colSums(SJER_site^2) == 0]) # 14 species not found at any SJER plot
+
+
+
 # Parse into SOAP site
 SOAP_site <- CA_sites[19:36, ]
 dim(SOAP_site)
 head(SOAP_site)
 tail(SOAP_site)
-```
+
+dim(SOAP_site[, colSums(SOAP_site^2) == 0]) # 8 species not found at any SOAP plot
 
 ### With our data parsed we can estimate D for the SJER and SOAP sites
 # this is a one off to run the function automatically for and only use three arguements
